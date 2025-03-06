@@ -53,10 +53,10 @@ def create_app():
     # Create the Flask app instance
     app = _init_flask_app()
 
-    hugging_face_key = os.getenv("HUGGING_FACE_KEY")
-    if not hugging_face_key:
-        app.logger.critical("HUGGING_FACE_KEY environment variable is not set.")
-        raise MissingAPIKeyError("HUGGING_FACE_KEY environment variable not set")
+    model_key = os.getenv("MISTRAL_API_KEY")
+    if not model_key:
+        app.logger.critical("MISTRAL_API_KEY environment variable is not set.")
+        raise MissingAPIKeyError("MISTRAL_API_KEY environment variable not set")
 
     # Register routes from the APIRoutes blueprint
     try:
@@ -73,7 +73,6 @@ def create_app():
             create_table(DB_TABLE_NAME)
             app.logger.info("Successfully set up database tables")
         except Exception as e:
-            app.logger.critical()
             raise Exception(f"ERROR: creating database table: {e}")
 
     # Adding Async capability to the app

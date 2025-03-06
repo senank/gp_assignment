@@ -16,6 +16,7 @@ services:
       - RESULT_BACKEND=db+postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}/${DB_NAME}
       - CELERY_BROKER_URL=redis://redis:6379/0
       - REDIS_DB_CACHE_URL=redis://redis:6379/1
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
     depends_on:
       - db  # Ensure Flask starts after the DB is available
       - redis
@@ -57,6 +58,7 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER} 
       - DB_PASSWORD=${DB_PASSWORD}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
     depends_on:
       - redis
       - db
