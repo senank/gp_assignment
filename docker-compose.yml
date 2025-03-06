@@ -1,0 +1,66 @@
+services:
+  app:
+    build:
+      dockerfile: Dockerfile.app
+    image: "main_app"
+    ports:
+      - "${APP_PORT:-8000}:5000"  # Expose port 5000 for Flask, 8000 for mac since 5000 in use
+    environment: 
+      - FLASK_RUN_MAIN=1
+      - FLASK_APP=app/app_instance.py
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER} 
+      - DB_PASSWORD=${DB_PASSWORD}
+      - RESULT_BACKEND=db+postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}/${DB_NAME}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - REDIS_DB_CACHE_URL=redis://redis:6379/1
+    depends_on:
+      - db  # Ensure Flask starts after the DB is available
+      - redis
+    volumes:
+      - .:/app
+
+  db:
+    image: pgvector/pgvector:pg13
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER} 
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT}:5432"  # Expose port 5432 for Postgres
+
+  redis:
+    image: redis:alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 5
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    depends_on:
+      - db
+
+  celery_worker:
+    build:
+      dockerfile: Dockerfile.app  # Reusing the same Dockerfile as `app`
+    command: ["/app/start-celery.sh"]
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - REDIS_DB_CACHE_URL=redis://redis:6379/1
+      - RESULT_BACKEND=db+postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}/${DB_NAME}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER} 
+      - DB_PASSWORD=${DB_PASSWORD}
+    depends_on:
+      - redis
+      - db
+      - app
+
+volumes:
+  postgres_data:
