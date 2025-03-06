@@ -17,19 +17,6 @@ def connect_to_db() -> Tuple[connection, cursor]:
     Establishes a connection to a PostgreSQL database and returns the connection
     and cursor objects.
 
-    This function uses the `psycopg2.connect` method to create a connection to
-    a PostgreSQL database. It also creates a cursor object from the connection
-    to execute SQL queries.
-
-    Returns:
-        tuple: A tuple containing:
-            - psycopg2.extensions.connection: The connection object to the database.
-            - psycopg2.extensions.cursor: The cursor object for executing queries.
-
-    Raises:
-        psycopg2.DatabaseError: If a connection to the database could not be
-                                established.
-
     Example:
         >>> conn, cursor = connect_to_db()
         >>> ...
