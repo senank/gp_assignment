@@ -70,7 +70,9 @@ def answer_question(question: str, similarity_limit: float, max_responses: int) 
         logger
         logger.debug(f"Sources for answer: {answer_sources}")
         logger.debug(f"Invoking LLM with {question} and sources")
-        answer = invoke_llm(question, answer_sources)
+        
+        # Remove id, section and similarity score from the sources for llm
+        answer = invoke_llm(question, [fact[2] for fact in answer_sources])
         if not answer:
             logger.debug(f"Invoking LLM returned empty str: {answer}")
             raise Exception("task: answer_question could not generate answer")

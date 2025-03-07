@@ -2,7 +2,7 @@ import os
 
 # route.py
 MAX_RESPONSES = 10
-SIMILARITY_LIMIT = 0.5
+SIMILARITY_LIMIT = 0.6
 CACHE_EXPIRY = 12 * 60 * 60  # 12 hours
 
 

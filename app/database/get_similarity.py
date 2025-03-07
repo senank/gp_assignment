@@ -8,8 +8,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-# TODO: Query for similarity search
-
 def get_similarity(emb_text, similarity_limit: float, num_responses: int) -> List[str]:
     """
     Retrieve similar pdfs based on input
@@ -25,20 +23,34 @@ def get_similarity(emb_text, similarity_limit: float, num_responses: int) -> Lis
     try:
         logger.debug("Using text provided to find similar articles")
         query_embedding = f"{emb_text}"
-        
-        sim_query, sim_query_values = _get_similarity_query_filter(
+
+        # Gets all pdfs with section 0 (initial filtering of documents in the database)
+        logger.debug("First stage of retrieval")
+        sim_query_high, sim_query_values_high = _get_similarity_query_high_level(
             query_embedding,
             similarity_limit,
             num_responses
         )
-        cur.execute(sim_query, sim_query_values)
-        similar_embeddings = cur.fetchall()
-        logger.debug("Successfully retrieved high-level similar pdfs \
-                    against embedded text.")
+        cur.execute(sim_query_high, sim_query_values_high)
+        top_pdf_ids = cur.fetchall()
+        similar_pdf_ids = [row[0] for row in top_pdf_ids]
+        logger.debug(f"Successfully retrieved high-level similar pdfs \
+                    against embedded text: {type(similar_pdf_ids)} {similar_pdf_ids}")
 
 
-
-        return similar_embeddings
+        # Gets all sections related from related pdfs from first query
+        logger.debug("Second stage of retrieval")
+        sim_query_high, sim_query_values_high = _get_similarity_query_low_level(
+            query_embedding,
+            similar_pdf_ids,
+            similarity_limit,
+            num_responses
+        )
+        cur.execute(sim_query_high, sim_query_values_high)
+        similar_chunks = cur.fetchall()
+        logger.debug(f"Successfully retrieved low-level similar pdfs from high-level pdfs \
+                    against embedded text: {type(similar_chunks)} {len(similar_chunks)} {similar_chunks[0]}")
+        return similar_chunks
 
     except Exception as e:
         conn.rollback()
@@ -54,26 +66,40 @@ def get_similarity(emb_text, similarity_limit: float, num_responses: int) -> Lis
 
 
 
-def _get_similarity_query_filter(query_embedding,
+def _get_similarity_query_high_level(query_embedding,
                           similarity_limit,
                           num_responses) -> Tuple[str, list]:
     """
     Returns tuple containing a string query and its placeholder values to perform
-    similarity search using DB_TEXT that contains filters
+    high-level similarity search that checks unique pdfs
     """
     logger.info("Building similarity query for text with filters.")
     query = f"""
-    SELECT {DB_ID}, {DB_TEXT}, {DB_SECTION}, 1 - ({DB_EMBEDDING} <=> %s) AS similarity
+    SELECT {DB_ID}
     FROM {DB_TABLE_NAME}
     WHERE {DB_SECTION} = 0
     AND 1 - ({DB_EMBEDDING} <=> %s) >= %s
     ORDER BY {DB_EMBEDDING} <=> %s
     LIMIT %s
     """
-    placeholders=[query_embedding, query_embedding, similarity_limit, query_embedding, num_responses]
-    logger.debug(f"Final query: {query}")
-    logger.debug(f"Final placeholders: {placeholders}")
-
+    placeholders=[query_embedding, similarity_limit, query_embedding, num_responses]
     logger.info("Similarity query for text built successfully.")
 
+    return query, placeholders
+
+def _get_similarity_query_low_level(query_embedding, similar_pdfs, similarity_limit, num_responses):
+    """
+    Returns tuple containing a string query and its placeholder values to perform
+    lower-level similarity search that checks section of unique pdf ids in `similar_pdfs`
+    """
+    query = f"""
+    SELECT {DB_ID}, {DB_SECTION}, {DB_TEXT}, 1 - ({DB_EMBEDDING} <=> %s) AS similarity
+    FROM {DB_TABLE_NAME}
+    WHERE {DB_SECTION} > 0
+    AND {DB_ID} = ANY(%s)
+    AND 1 - ({DB_EMBEDDING} <=> %s) >= %s
+    ORDER BY {DB_EMBEDDING} <=> %s
+    LIMIT %s
+    """
+    placeholders=[query_embedding, similar_pdfs, query_embedding, similarity_limit, query_embedding, num_responses]
     return query, placeholders

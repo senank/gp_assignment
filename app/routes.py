@@ -60,6 +60,9 @@ class APIRoutes:
         self.api_routes_bp = Blueprint('api_routes', __name__)
         logger.info("Initializing API routes...")
 
+        self.api_routes_bp.add_url_rule('/', 'home', self.home,
+                                        methods=['GET'])
+
         self.api_routes_bp.add_url_rule('/add_pdf', 'add_pdf', self.add_pdf,
                                         methods=['POST'])
         
@@ -69,6 +72,10 @@ class APIRoutes:
         logger.debug("Successfully registered routes")
 
 
+    # URL/
+    def home(self):
+        return f"working"
+    
     # URL/add_pdf
     def add_pdf(self):
         """
@@ -143,7 +150,6 @@ class APIRoutes:
             redis_client = current_app.config["REDIS_CACHE"]
 
 
-            # TODO Check caching for similarity comparison
             logger.debug("Checking cache for similarity comparison.")
             cached_similarity_key = cache_key_answer_question(question_text)
             status, cached_result = get_cache(redis_client, cached_similarity_key)
