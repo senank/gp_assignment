@@ -26,7 +26,7 @@ def generate_embedding(text_inputs: List[str]) -> list[float]:
             inputs=text_inputs
         )
         embedded_texts = [embeddings.data[i].embedding for i in range(0,len(text_inputs))]
-        logger.debug(f"Received {len(embedded_texts)} embeddings from OpenAI.")
+        logger.debug(f"Received {len(embedded_texts)} embeddings from Mistral.")
         return embedded_texts
     except Exception as e:
         logger.exception(f"An error occurred during embedding generation: {e}")
