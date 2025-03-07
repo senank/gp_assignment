@@ -1,5 +1,5 @@
 from ..database import connect_to_db
-from ..constants import DB_TABLE_NAME, DB_ID, DB_SECTION
+from ..constants import DB_TABLE_NAME, DB_ID
 
 import logging
 

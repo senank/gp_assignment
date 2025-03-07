@@ -11,6 +11,8 @@ def invoke_llm(question: str, content: List[str]):
     """
     Send a given prompt to an open-source llm on mistral
     """
+    if not content:
+        return f"There are not facts available that are related to {question}"
     try:
         client = Mistral(api_key=MISTRAL_API_KEY)
         chat_response = client.chat.complete(

@@ -1,8 +1,6 @@
 from typing import List
 from ..database import connect_to_db
 
-import psycopg2
-
 from ..constants import DB_TABLE_NAME, DB_ID
 
 import logging

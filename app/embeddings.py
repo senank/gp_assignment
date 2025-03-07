@@ -2,10 +2,6 @@
 This module provides utilities for generating, processing, and managing text embeddings
 """
 # Imports
-import numpy as np
-
-import math
-
 from typing import List
 
 from .constants import ENCODING_MODEL, MISTRAL_API_KEY

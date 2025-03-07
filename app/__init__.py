@@ -149,7 +149,6 @@ def _init_flask_app():
     Configures the flask application
 
     """
-    current_dir = os.path.dirname(os.path.abspath(__file__))
     app = Flask(__name__)
     app.config['ENV'] = 'development'
     app.config['DEBUG'] = True

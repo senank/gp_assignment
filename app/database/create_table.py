@@ -1,9 +1,7 @@
 """
 This module defines all database related functions for interacting with postgreSQL
 """
-from typing import Tuple, List
 from psycopg2.extensions import connection, cursor
-
 
 import logging
 from psycopg2 import sql

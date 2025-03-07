@@ -9,7 +9,6 @@ from .database.task_helpers import get_entry_from_db
 from .database.add_pdf import add_pdf_to_db
 from .database.get_similarity import get_similarity as get_sim
 
-
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from celery import shared_task
@@ -58,12 +57,28 @@ def emb_and_store(self, pdf_id: str, pdf_text: str) -> Dict:
         raise Exception(f"Error occured in emb_and_store: {e}")
 
 
-# TODO task: answer_question
-def answer_question() -> str:
+def answer_question(question: str, similarity_limit: float, max_responses: int) -> str:
     """
     Perform similarity comparison based on provided text, then answers the question in the text.
     """
-    pass
+    try:
+        logger.info("Calculating embedding for provided text.")
+        emb_text = generate_embedding([question])[0]
+        
+        logger.debug(f"Getting sources for answer")
+        answer_sources = get_sim(emb_text, similarity_limit, max_responses)
+        logger
+        logger.debug(f"Sources for answer: {answer_sources}")
+        logger.debug(f"Invoking LLM with {question} and sources")
+        answer = invoke_llm(question, answer_sources)
+        if not answer:
+            logger.debug(f"Invoking LLM returned empty str: {answer}")
+            raise Exception("task: answer_question could not generate answer")
+        return answer
+
+    except Exception as e:
+        logger.exception(f"Unexpected error occurred in get_similarity:task: {e}")
+        raise Exception(f"Error occured in emb_and_store: {e}")
 
 
 def _get_data_for_db(id_: str, content: str) -> List[Dict]:

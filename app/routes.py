@@ -1,9 +1,14 @@
-from flask import request, jsonify, Blueprint
-from jsonschema import ValidationError
+from flask import request, jsonify, Blueprint, current_app
+from jsonschema import validate, ValidationError
+import json
 
 import redis
 
-from .task import emb_and_store
+from .constants import JSON_QUESTION, SIMILARITY_LIMIT, MAX_RESPONSES,\
+    JSON_SIMILARITY_LIMIT, JSON_MAX_RESPONSES, CACHE_EXPIRY
+
+from .task import emb_and_store, answer_question
+from .redis_cache import cache_key_answer_question, set_cache, get_cache
 from .extract_pdf import extract_data_from_pdf
 
 import logging
@@ -114,7 +119,71 @@ class APIRoutes:
 
     # URL/answer_question
     def answer_question(self):
-        pass
+        logger.info("Processing compare_text request.")
+        try:
+            if not request.is_json:
+                logger.error("Request content is not JSON.")
+                return jsonify({"error": "Request content is not JSON"}), 400
+            
+            # Get json data
+            data = request.get_json()
+            logger.debug("Received JSON data")
+            _validate_answer_question(data)
+            logger.debug("Validated JSON data")
+            
+            question_text = data[JSON_QUESTION]
+            if not question_text:
+                return jsonify({'message': 'need a valid question query', 'data': ""}), 404
+
+            similarity_limit = data.get(JSON_SIMILARITY_LIMIT, SIMILARITY_LIMIT)
+            max_responses = data.get(JSON_MAX_RESPONSES, MAX_RESPONSES)
+
+            _redis_healthcheck()  # Healthcheck redis cache
+
+            redis_client = current_app.config["REDIS_CACHE"]
+
+
+            # TODO Check caching for similarity comparison
+            logger.debug("Checking cache for similarity comparison.")
+            cached_similarity_key = cache_key_answer_question(question_text)
+            status, cached_result = get_cache(redis_client, cached_similarity_key)
+            if status == 1:  # if cached
+                logger.info("Found similarity comparison data for text input in cache.")
+                return jsonify({
+                    'message': 'Found search in Cache',
+                    'data': json.loads(cached_result)}), 200
+
+            # If not cached
+            logger.info("No similarity comparison data for text input in cache; \
+                        querying db")
+            answer = answer_question(question_text, similarity_limit, max_responses)
+
+            logger.info("Setting cache for similarity comparison based on text")
+            set_cache(redis_client, cached_similarity_key, json.dumps(answer),
+                      ex=CACHE_EXPIRY)
+
+            logger.info("Successfully generated answer to given question")
+            return jsonify({
+                'message': f"Successfully generated answer to {question_text}",
+                'data': answer}), 200
+
+        except ConnectionError:
+            logger.error("Connection error to redis, not checking cache")
+
+            answer = answer_question(question_text, similarity_limit, max_responses)
+            
+            logger.info("Successfully generated similar IDs, with filters, to \
+                        the given input text")
+            return jsonify({
+                'message': f"Successfully generated answer to {question_text}",
+                'data': answer}), 200
+
+        except ValidationError as e:
+            logger.error(f"Validation error: {str(e)}")
+            return jsonify({"error": f"compare_text: {str(e)}"}), 400
+        except Exception as e:
+            logger.error(f"An unexpected error occurred: {str(e)}")
+            return jsonify({"error": f"compare_text: {str(e)}"}), 500
 
 
 
@@ -131,3 +200,26 @@ def _validate_add_pdf(request):
             raise ValidationError("File provided is not a pdf")
     except Exception as e:
         raise ValidationError(f"Invalid file format: {e.message}")
+
+
+# answer_question validation
+def _validate_answer_question(data):
+    try:
+        data = request.get_json()
+        validate(instance=data, schema=_get_json_schema_answer_text())
+    except ValidationError as e:
+        raise ValidationError(f"Invalid JSON format: {e.message}")
+
+# compare_text schema
+def _get_json_schema_answer_text():
+    return {
+        "type": "object",
+        "properties": {
+            JSON_QUESTION: {"type": "string"},
+            JSON_SIMILARITY_LIMIT: {"type": "number"},
+            JSON_MAX_RESPONSES: {"type": "integer"}
+        },
+        "required": [JSON_QUESTION],
+        "additionalProperties": False
+    }
+
