@@ -11,6 +11,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+# TODO Swap mistral for in-memory as per instructions
+
 # embeddings
 def generate_embedding(text_inputs: List[str]) -> list[float]:
     """
