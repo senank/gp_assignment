@@ -10,8 +10,8 @@ from psycopg2 import sql
 
 from ..database import connect_to_db
 
-from ..constants import DB_ID, DB_EMBEDDING, DB_SECTION, DB_TABLE_NAME, DB_TEXT,\
-    ENCODING_MODEL, EXPECTED_SIZE_OF_DB
+from ..constants import DB_EMBEDDING, DB_SECTION, DB_TABLE_NAME, DB_TEXT,\
+    EXPECTED_SIZE_OF_DB, DB_ID
 
 from math import log, ceil
 import re
@@ -180,7 +180,7 @@ def _create_table_index(cur: cursor):
     """
     logger.info("Creating indexes for the table.")
     try:
-        create_text_index_query = _get_text_index_query()
+        create_text_index_query = get_id_index_query()
         logger.debug(f"Executing ID index creation query: {create_text_index_query}")
         cur.execute(create_text_index_query)
 
@@ -235,13 +235,14 @@ def _validate_table_schema(conn: connection, cur: cursor, table_name: str):
         raise Exception(f"Error: _validate_table_schema; {e}")
 
 
-def _get_expected_columns_schema() -> dict:  # TODO: Determine DB columns
+def _get_expected_columns_schema() -> dict:
     """
     Returns dict containing the expected structure of the db for validation purposes
     """
     return {
         'id': 'integer',
-        DB_TEXT: 'text',
+        DB_ID: 'text',
+        DB_TEXT: 'character varying',
         DB_EMBEDDING: 'vector',
         DB_SECTION: 'integer'
     }
@@ -530,20 +531,15 @@ def _get_create_table_query() -> str:
     """
 
 
-def _get_vector_type():
-    """ Returns the type of vector for pgvector (currently maxed at 2000 so need
-    half-precision) Trades precision for semantic clustering.
-    """
-    if ENCODING_MODEL == "all-MiniLM-L6-v2":
-        return "vector(384)"
-    elif ENCODING_MODEL == "multi-qa-mpnet-base-dot-v1":
-        return "vector(768)"
+def _get_vector_type() -> str:
+    """ Returns the type of vector for pgvector """
+    return "vector(1024)"  # Size of mistral-embed encoding model
 
 
-def _get_text_index_query() -> str:
+def get_id_index_query() -> str:
     """ Returns string query to create search index on 'DB_ID' """
     return f"""
-    CREATE INDEX IF NOT EXISTS idx_db_id ON {DB_TABLE_NAME} ({DB_TEXT});
+    CREATE INDEX IF NOT EXISTS idx_db_id ON {DB_TABLE_NAME} ({DB_ID});
     """
 
 
@@ -552,8 +548,7 @@ def _get_vector_index_query() -> str:
     Returns string query to create hnsw index on vector 'embedding' using
     cosine similarity
     """
-    search_operator = "vector_cosine_ops" if ENCODING_MODEL == "text-embedding-3-small"\
-        else "halfvec_cosine_ops"
+    search_operator = "vector_cosine_ops"
 
     m, ef_construction = _get_vector_index_params()
 
@@ -566,7 +561,7 @@ def _get_vector_index_query() -> str:
 
 def _get_vector_index_params():
     """ Gets vector index setting for m and ef_construction"""
-    vector_dimension = 768 if ENCODING_MODEL == "multi-qa-mpnet-base-dot-v1" else 384
+    vector_dimension = 1024
     n = EXPECTED_SIZE_OF_DB
     dimensionality = log(n) * (1 + (vector_dimension / 500))
 

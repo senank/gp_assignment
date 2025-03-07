@@ -1,0 +1,96 @@
+from typing import Dict, List
+
+from .constants import CHUNK_OVERLAP, CHUNK_SIZE, DB_SECTION, DB_EMBEDDING,\
+    DB_TEXT, DB_ID
+from .embeddings import generate_embedding
+from .models import invoke_llm
+
+from .database.task_helpers import get_entry_from_db
+from .database.add_pdf import add_pdf_to_db
+from .database.get_similarity import get_similarity as get_sim
+
+
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+from celery import shared_task
+from celery.contrib.abortable import AbortableTask
+
+import logging
+
+
+logger = logging.getLogger(__name__)
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=60, base=AbortableTask)
+def emb_and_store(self, pdf_id: str, pdf_text: str) -> Dict:
+    """
+    Embeds the file data and stores it in the database.
+
+    This function processes the input `pdf` by generating embeddings for the text
+    using an encoder model, then stores the processed data in the database.
+    """
+    try:
+        logger.info(f"Processing pdf")
+
+        # Avoid repeat entries
+        if get_entry_from_db(pdf_id):
+            logger.debug(f"Found same content in the database,")
+            return
+
+        # Entry doesn't exist or has been changed
+        logger.info(f"Adding new entry: {pdf_id}")
+        data_for_db = _get_data_for_db(pdf_id, pdf_text)
+
+        if data_for_db is None:  # failed/bad vector embedding generation
+            logger.error(f"Embedding generation failed for text: {pdf_text}")
+            return
+
+        # Store sectioned content for better rag
+        logger.info(f"Splitting text content into chunks for pdf")
+        
+        logger.info(f"Adding processed data to the database.")
+        add_pdf_to_db(data_for_db)
+
+        return data_for_db  # returns list of entries added to db
+
+    except Exception as e:
+        logger.exception(f"Unexpected error occurred in emb_and_store:task: {e}")
+        raise Exception(f"Error occured in emb_and_store: {e}")
+
+
+# TODO task: answer_question
+def answer_question() -> str:
+    """
+    Perform similarity comparison based on provided text, then answers the question in the text.
+    """
+    pass
+
+
+def _get_data_for_db(id_: str, content: str) -> List[Dict]:
+    """
+    Converts the pdf data into chunked sections that are embedded to be stored in the db
+    """
+    text_to_embed = []
+    data_for_db = []
+
+    splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE,
+                                                  chunk_overlap=CHUNK_OVERLAP)
+    chunks = splitter.split_text(content)  # split content
+
+    text_to_embed.append(content)  # Store full content at index 0
+    for chunk in chunks:
+        text_to_embed.append(chunk)
+    
+    emb_inputs = generate_embedding(text_to_embed)
+
+    # Make list of dictionaries to pass to add_pdf
+    for i, emb_input in enumerate(emb_inputs):
+        logger.debug(f"Processing chunk {i + 1}/{len(chunks)}")
+        pdf_chunk = {}  # Make copy of the main entry
+        pdf_chunk[DB_ID] = id_
+        pdf_chunk[DB_TEXT] = text_to_embed[i]  # Replace text with chunk of text
+        pdf_chunk[DB_EMBEDDING] = emb_input
+        pdf_chunk[DB_SECTION] = i
+        data_for_db.append(pdf_chunk)
+
+    return data_for_db

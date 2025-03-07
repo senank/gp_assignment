@@ -7,7 +7,7 @@ from .constants import MISTRAL_API_KEY
 
 logger = logging.getLogger(__name__)
 
-def invoke_llm(question: str, content: List[str]):  # TODO: model invocation
+def invoke_llm(question: str, content: List[str]):
     """
     Send a given prompt to an open-source llm on mistral
     """
