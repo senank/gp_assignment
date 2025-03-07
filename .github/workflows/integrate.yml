@@ -1,0 +1,89 @@
+name: Dev CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Lint with flake8
+        run: docker compose -f docker-compose.yml run --rm app flake8 --max-line-length=90 --ignore=E231,E266,E225,W503,E126,E121 .
+
+  test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Build and start services using docker compose
+        env:
+          APP_PORT: 0
+          REDIS_PORT: 0
+          HUGGING_FACE_KEY: ${{ secrets.HUGGING_FACE_KEY }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          LANGCHAIN_API_KEY: ${{ secrets.LANGCHAIN_API_KEY }}
+          LANGCHAIN_TRACING_V2: true
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+        run: |
+          docker compose -f docker-compose.yml up --build -d
+          docker compose -f docker-compose.yml ps
+
+      - name: Run tests with pytest
+        run: |
+          DYNAMIC_PORT=$(docker compose -f docker-compose.yml port app 5000 | cut -d':' -f2)
+          export APP_URL="http://localhost:$DYNAMIC_PORT"
+          echo "Application is running on $APP_URL"
+          python -m pip install pytest
+          pip install -r requirements_app.txt
+          python -m pytest -v test
+
+      - name: Shut down services
+        if: always()
+        run: docker compose -f docker-compose.yml down -v
+  
+  create-release-branch:
+    name: Create Release Branch
+    needs:
+      - test-build
+      - lint
+    runs-on: ubuntu-latest
+    if: success() # Only run if 'test-build' and 'lint' passed
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create and Push Release Branch
+        id: create_branch
+        run: |
+          export RELEASE_BRANCH="release-$(date +'%Y-%m-%d_%H%M')"
+          echo "Release branch name = $RELEASE_BRANCH"
+          git checkout -b "$RELEASE_BRANCH"
+          git push origin "$RELEASE_BRANCH"
+          echo "release_branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
