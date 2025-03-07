@@ -319,7 +319,6 @@ def _drop_embedding_table(conn: connection, cur: cursor):
         raise Exception(f"Error: _drop_embedding_table: {e}")
 
 
-
 # Setters for Table Columns
 def set_columns(conn: connection, cur: cursor, columns_to_add: dict, table_name: str):
     """
@@ -426,7 +425,7 @@ def _remove_column(col_name: str, table_name: str, conn: connection, cur: cursor
         logger.exception(f"Error occurred while removing column '{col_name}' \
                         from table '{table_name}'.")
         raise Exception(f"Error: remove_column; {e}")
-    
+
 
 # Validating Vector Index in already created table
 def _validate_vector_index():
@@ -501,7 +500,6 @@ def _remake_vector_search_index():
     logger.info("Vector search index recreated")
     cur.close()
     conn.close()
-
 
 
 ### SQL query getters ###
@@ -590,4 +588,3 @@ def _get_rm_column_query(table_name, col_name) -> str:
         sql.Identifier(table_name),
         sql.Identifier(col_name)
     )
-

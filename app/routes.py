@@ -14,6 +14,7 @@ from .extract_pdf import extract_data_from_pdf
 import logging
 logger = logging.getLogger(__name__)
 
+
 def _redis_healthcheck():
     """
     Check the availability of the Redis server using the specified host, port,
@@ -65,17 +66,17 @@ class APIRoutes:
 
         self.api_routes_bp.add_url_rule('/add_pdf', 'add_pdf', self.add_pdf,
                                         methods=['POST'])
-        
+
         self.api_routes_bp.add_url_rule('/answer_question', 'answer_question',
                                         self.answer_question, methods=['POST'])
 
         logger.debug("Successfully registered routes")
 
-
     # URL/
     def home(self):
-        return f"working"
-    
+        """ Default GET url to test if app is working """
+        return "working"
+
     # URL/add_pdf
     def add_pdf(self):
         """
@@ -96,7 +97,6 @@ class APIRoutes:
             logger.debug(f"Extracting {pdf} to the db.")
             pdf_id, pdf_text = extract_data_from_pdf(pdf)
 
-
             # Checking if redis and celery worker available
             logger.debug("Checking if redis are available")
             _redis_healthcheck()  # Healthcheck redis for .delay
@@ -106,16 +106,16 @@ class APIRoutes:
 
             emb_and_store.delay(pdf_id, pdf_text)
 
-            logger.info(f"Successfully added pdf ASYNCHRONOUSLY")
-            return jsonify({"message": f"Succesfully added pdf"}), 200
+            logger.info("Successfully added pdf ASYNCHRONOUSLY")
+            return jsonify({"message": "Succesfully added pdf"}), 200
         except ConnectionError:
             logger.error("Connection error to redis, adding synchronously")
             logger.debug(f"Adding {pdf_text} to the db.")
             emb_and_store(pdf_id, pdf_text)
 
-            logger.info(f"Successfully added pdf SYNCHRONOUSLY.")
+            logger.info("Successfully added pdf SYNCHRONOUSLY.")
             return jsonify({
-                "message": f"Succesfully added pdf",}), 200
+                "message": "Succesfully added pdf",}), 200
 
         except ValidationError as e:
             logger.error(f"Validation error in add_pdf: {str(e)}")
@@ -131,16 +131,18 @@ class APIRoutes:
             if not request.is_json:
                 logger.error("Request content is not JSON.")
                 return jsonify({"error": "Request content is not JSON"}), 400
-            
+
             # Get json data
             data = request.get_json()
             logger.debug("Received JSON data")
             _validate_answer_question(data)
             logger.debug("Validated JSON data")
-            
+
             question_text = data[JSON_QUESTION]
             if not question_text:
-                return jsonify({'message': 'need a valid question query', 'data': ""}), 404
+                return jsonify({
+                    'message': 'need a valid question query',
+                    'data': ""}), 404
 
             similarity_limit = data.get(JSON_SIMILARITY_LIMIT, SIMILARITY_LIMIT)
             max_responses = data.get(JSON_MAX_RESPONSES, MAX_RESPONSES)
@@ -148,7 +150,6 @@ class APIRoutes:
             _redis_healthcheck()  # Healthcheck redis cache
 
             redis_client = current_app.config["REDIS_CACHE"]
-
 
             logger.debug("Checking cache for similarity comparison.")
             cached_similarity_key = cache_key_answer_question(question_text)
@@ -177,7 +178,7 @@ class APIRoutes:
             logger.error("Connection error to redis, not checking cache")
 
             answer = answer_question(question_text, similarity_limit, max_responses)
-            
+
             logger.info("Successfully generated similar IDs, with filters, to \
                         the given input text")
             return jsonify({
@@ -192,12 +193,11 @@ class APIRoutes:
             return jsonify({"error": f"compare_text: {str(e)}"}), 500
 
 
-
 ### Validation helpers
 # add pdf validation
 def _validate_add_pdf(request):
     try:
-        if not "file" in request.files:
+        if "file" not in request.files:
             raise ValidationError("No filename provided in file")
         filename = request.files['file'].filename
         if filename == '':
@@ -216,6 +216,7 @@ def _validate_answer_question(data):
     except ValidationError as e:
         raise ValidationError(f"Invalid JSON format: {e.message}")
 
+
 # compare_text schema
 def _get_json_schema_answer_text():
     return {
@@ -228,4 +229,3 @@ def _get_json_schema_answer_text():
         "required": [JSON_QUESTION],
         "additionalProperties": False
     }
-

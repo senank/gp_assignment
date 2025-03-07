@@ -29,11 +29,11 @@ def emb_and_store(self, pdf_id: str, pdf_text: str) -> Dict:
     using an encoder model, then stores the processed data in the database.
     """
     try:
-        logger.info(f"Processing pdf")
+        logger.info("Processing pdf")
 
         # Avoid repeat entries
         if get_entry_from_db(pdf_id):
-            logger.debug(f"Found same content in the database,")
+            logger.debug("Found same content in the database,")
             return
 
         # Entry doesn't exist or has been changed
@@ -44,10 +44,7 @@ def emb_and_store(self, pdf_id: str, pdf_text: str) -> Dict:
             logger.error(f"Embedding generation failed for text: {pdf_text}")
             return
 
-        # Store sectioned content for better rag
-        logger.info(f"Splitting text content into chunks for pdf")
-        
-        logger.info(f"Adding processed data to the database.")
+        logger.info("Adding processed data to the database.")
         add_pdf_to_db(data_for_db)
 
         return data_for_db  # returns list of entries added to db
@@ -59,18 +56,19 @@ def emb_and_store(self, pdf_id: str, pdf_text: str) -> Dict:
 
 def answer_question(question: str, similarity_limit: float, max_responses: int) -> str:
     """
-    Perform similarity comparison based on provided text, then answers the question in the text.
+    Perform similarity comparison based on provided text, then answers the question in
+    the text.
     """
     try:
         logger.info("Calculating embedding for provided text.")
         emb_text = generate_embedding([question])[0]
-        
-        logger.debug(f"Getting sources for answer")
+
+        logger.debug("Getting sources for answer")
         answer_sources = get_sim(emb_text, similarity_limit, max_responses)
         logger
         logger.debug(f"Sources for answer: {answer_sources}")
         logger.debug(f"Invoking LLM with {question} and sources")
-        
+
         # Remove id, section and similarity score from the sources for llm
         answer = invoke_llm(question, [fact[2] for fact in answer_sources])
         if not answer:
@@ -91,13 +89,13 @@ def _get_data_for_db(id_: str, content: str) -> List[Dict]:
     data_for_db = []
 
     splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE,
-                                                  chunk_overlap=CHUNK_OVERLAP)
+                                              chunk_overlap=CHUNK_OVERLAP)
     chunks = splitter.split_text(content)  # split content
 
     text_to_embed.append(content)  # Store full content at index 0
     for chunk in chunks:
         text_to_embed.append(chunk)
-    
+
     emb_inputs = generate_embedding(text_to_embed)
 
     # Make list of dictionaries to pass to add_pdf

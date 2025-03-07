@@ -2,6 +2,7 @@ from pypdf import PdfReader
 from io import BytesIO
 import hashlib
 
+
 def extract_data_from_pdf(pdf_bytes: bytes) -> str:
     """generates a id and extracts the text from a given pdf"""
     hash_obj = hashlib.sha256(pdf_bytes)

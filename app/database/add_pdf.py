@@ -39,7 +39,6 @@ def add_pdf_to_db(data: List[dict]) -> None:
     logger.info("Finished adding pdf(s) to the database.")
 
 
-
 def _get_add_pdf_query(data: dict) -> str:
     """ Returns string query to add pdf based on data to database """
     # Prepare column names and values

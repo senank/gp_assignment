@@ -153,5 +153,5 @@ def _init_flask_app():
     app.config['ENV'] = 'development'
     app.config['DEBUG'] = True
     app.config['TESTING'] = True
-    app.logger.info(f"Flask application instance created.")
+    app.logger.info("Flask application instance created.")
     return app

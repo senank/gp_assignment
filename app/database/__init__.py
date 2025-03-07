@@ -11,6 +11,7 @@ from time import sleep
 # Logger
 logger = logging.getLogger(__name__)
 
+
 ### DB CONNECTION ###
 def connect_to_db() -> Tuple[connection, cursor]:
     """

@@ -7,6 +7,7 @@ from .constants import MISTRAL_API_KEY
 
 logger = logging.getLogger(__name__)
 
+
 def invoke_llm(question: str, content: List[str]):
     """
     Send a given prompt to an open-source llm on mistral
@@ -16,8 +17,8 @@ def invoke_llm(question: str, content: List[str]):
     try:
         client = Mistral(api_key=MISTRAL_API_KEY)
         chat_response = client.chat.complete(
-            model = _get_model(),
-            messages = [
+            model=_get_model(),
+            messages=[
                 {
                     "role": "user",
                     "content": rag_prompt.format(question=question, content=content),
@@ -27,7 +28,7 @@ def invoke_llm(question: str, content: List[str]):
         return chat_response.choices[0].message.content
     except Exception as e:
         logger.error(f"invoking mistral face llm: {e}")
-    
+
 
 def _get_model():
     return "mistral-small-latest"
@@ -41,4 +42,4 @@ Generate an answer the the question in the <question> XML tag exclusively using 
 
 ### **Article to Analyze**
 <facts>{content}</facts>
-"""
+"""  # noqa: E501

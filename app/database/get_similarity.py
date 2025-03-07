@@ -34,9 +34,8 @@ def get_similarity(emb_text, similarity_limit: float, num_responses: int) -> Lis
         cur.execute(sim_query_high, sim_query_values_high)
         top_pdf_ids = cur.fetchall()
         similar_pdf_ids = [row[0] for row in top_pdf_ids]
-        logger.debug(f"Successfully retrieved high-level similar pdfs \
-                    against embedded text: {type(similar_pdf_ids)} {similar_pdf_ids}")
-
+        logger.debug("Successfully retrieved high-level similar pdfs \
+                     against embedded text")
 
         # Gets all sections related from related pdfs from first query
         logger.debug("Second stage of retrieval")
@@ -48,8 +47,8 @@ def get_similarity(emb_text, similarity_limit: float, num_responses: int) -> Lis
         )
         cur.execute(sim_query_high, sim_query_values_high)
         similar_chunks = cur.fetchall()
-        logger.debug(f"Successfully retrieved low-level similar pdfs from high-level pdfs \
-                    against embedded text: {type(similar_chunks)} {len(similar_chunks)} {similar_chunks[0]}")
+        logger.debug("Successfully retrieved low-level similar pdfs from high-level pdfs \
+                     against embedded text")
         return similar_chunks
 
     except Exception as e:
@@ -65,10 +64,9 @@ def get_similarity(emb_text, similarity_limit: float, num_responses: int) -> Lis
             logger.debug("Database connection closed.")
 
 
-
 def _get_similarity_query_high_level(query_embedding,
-                          similarity_limit,
-                          num_responses) -> Tuple[str, list]:
+                                     similarity_limit,
+                                     num_responses) -> Tuple[str, list]:
     """
     Returns tuple containing a string query and its placeholder values to perform
     high-level similarity search that checks unique pdfs
@@ -87,7 +85,11 @@ def _get_similarity_query_high_level(query_embedding,
 
     return query, placeholders
 
-def _get_similarity_query_low_level(query_embedding, similar_pdfs, similarity_limit, num_responses):
+
+def _get_similarity_query_low_level(query_embedding,
+                                    similar_pdfs: List,
+                                    similarity_limit: float,
+                                    num_responses: int):
     """
     Returns tuple containing a string query and its placeholder values to perform
     lower-level similarity search that checks section of unique pdf ids in `similar_pdfs`
@@ -101,5 +103,6 @@ def _get_similarity_query_low_level(query_embedding, similar_pdfs, similarity_li
     ORDER BY {DB_EMBEDDING} <=> %s
     LIMIT %s
     """
-    placeholders=[query_embedding, similar_pdfs, query_embedding, similarity_limit, query_embedding, num_responses]
+    placeholders = [query_embedding, similar_pdfs, query_embedding, similarity_limit,
+                    query_embedding, num_responses]
     return query, placeholders

@@ -22,7 +22,7 @@ def generate_embedding(text_inputs: List[str]) -> list[float]:
         client = Mistral(api_key=MISTRAL_API_KEY)
         logger.debug("Sending text to embeddings endpoint.")
         embeddings = client.embeddings.create(
-            model = ENCODING_MODEL,
+            model=ENCODING_MODEL,
             inputs=text_inputs
         )
         embedded_texts = [embeddings.data[i].embedding for i in range(0,len(text_inputs))]
