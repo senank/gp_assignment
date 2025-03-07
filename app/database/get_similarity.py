@@ -34,8 +34,8 @@ def get_similarity(emb_text, similarity_limit: float, num_responses: int) -> Lis
         cur.execute(sim_query_high, sim_query_values_high)
         top_pdf_ids = cur.fetchall()
         similar_pdf_ids = [row[0] for row in top_pdf_ids]
-        logger.debug("Successfully retrieved high-level similar pdfs \
-                     against embedded text")
+        logger.debug(f"Successfully retrieved high-level similar pdfs \
+                     against embedded text {top_pdf_ids}")
 
         # Gets all sections related from related pdfs from first query
         logger.debug("Second stage of retrieval")
@@ -47,8 +47,8 @@ def get_similarity(emb_text, similarity_limit: float, num_responses: int) -> Lis
         )
         cur.execute(sim_query_high, sim_query_values_high)
         similar_chunks = cur.fetchall()
-        logger.debug("Successfully retrieved low-level similar pdfs from high-level pdfs \
-                     against embedded text")
+        logger.debug(f"Successfully retrieved low-level similar pdfs from high-level pdfs \
+                     against embedded text {similar_chunks}")
         return similar_chunks
 
     except Exception as e:

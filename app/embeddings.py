@@ -7,6 +7,8 @@ from typing import List
 from .constants import MISTRAL_ENCODING_MODEL, MISTRAL_API_KEY, ST_ENCODING_MODEL
 from mistralai import Mistral
 
+from numpy import linalg
+
 from sentence_transformers import SentenceTransformer
 
 import logging
@@ -47,9 +49,10 @@ def generate_embedding(text_inputs: List[str]) -> List[List[float]]:
     logger.info(f"Starting embedding generation for {len(text_inputs)} chunks using \
                 sentenceTransformer model: {ST_ENCODING_MODEL}.")
     try:
-        embeddings = model.encode(text_inputs, convert_to_numpy=False)
-        logger.debug(f"{len(embeddings)}")
-        embedded_texts = [embedding.tolist() for embedding in embeddings]
+        embeddings = model.encode(text_inputs, convert_to_numpy=True)
+        # Normalizing to improve cosine similarity performace
+        normalized_embeddings = embeddings / linalg.norm(embeddings, axis=1, keepdims=True)
+        embedded_texts = [embedding.tolist() for embedding in normalized_embeddings]
         logger.debug(
             f"Received {len(embedded_texts)} embeddings with \
             {len(embedded_texts[0])} dimensions from SentenceTransfomer."
