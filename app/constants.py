@@ -24,7 +24,8 @@ EXPECTED_SIZE_OF_DB = 5 * 10**6
 # embeddings.py
 CHUNK_OVERLAP = 200
 CHUNK_SIZE = 800
-ENCODING_MODEL = "mistral-embed"
+MISTRAL_ENCODING_MODEL = "mistral-embed"
+ST_ENCODING_MODEL = 'all-MiniLM-L6-v2'
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY", "")
 
 # CORS Validation

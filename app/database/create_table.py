@@ -529,7 +529,8 @@ def _get_create_table_query() -> str:
 
 def _get_vector_type() -> str:
     """ Returns the type of vector for pgvector """
-    return "vector(1024)"  # Size of mistral-embed encoding model
+    # return "vector(1024)"  #? Size of mistral-embed encoding model
+    return "vector(384)"  #? Size of all-MiniLM-L6-v2 encoding model
 
 
 def get_id_index_query() -> str:
@@ -557,7 +558,9 @@ def _get_vector_index_query() -> str:
 
 def _get_vector_index_params():
     """ Gets vector index setting for m and ef_construction"""
-    vector_dimension = 1024
+    # vector_dimension = 1024  #? for mistral-embed encoding model
+    vector_dimension = 384  #? for all-MiniLM-L6-v2 encoding model
+
     n = EXPECTED_SIZE_OF_DB
     dimensionality = log(n) * (1 + (vector_dimension / 500))
 
