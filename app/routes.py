@@ -9,7 +9,6 @@ from .constants import JSON_QUESTION, SIMILARITY_LIMIT, MAX_RESPONSES,\
 
 from .task import emb_and_store, answer_question
 from .redis_cache import cache_key_answer_question, set_cache, get_cache
-from .extract_pdf import extract_data_from_pdf
 
 import logging
 logger = logging.getLogger(__name__)
@@ -93,25 +92,21 @@ class APIRoutes:
             pdf = request.files['file'].read()
             logger.debug("Extracted file bytes")
 
-            # extracting pdf data for storage
-            logger.debug(f"Extracting {pdf} to the db.")
-            pdf_id, pdf_text = extract_data_from_pdf(pdf)
-
             # Checking if redis and celery worker available
             logger.debug("Checking if redis are available")
             _redis_healthcheck()  # Healthcheck redis for .delay
             logger.debug("Checking if celery workers are available")
             _is_celery_worker_active()  # Check if celery worker is active
-            logger.debug("Redis and Celery available, adding asynchronously")
 
-            emb_and_store.delay(pdf_id, pdf_text)
+            logger.debug("Adding pdf to the db asynchronously.")
+            emb_and_store.delay(pdf)
 
             logger.info("Successfully added pdf ASYNCHRONOUSLY")
             return jsonify({"message": "Succesfully added pdf"}), 200
         except ConnectionError:
-            logger.error("Connection error to redis, adding synchronously")
-            logger.debug(f"Adding {pdf_text} to the db.")
-            emb_and_store(pdf_id, pdf_text)
+            logger.error("Connection error to redis/celery.")
+            logger.debug("Adding pdf to the db synchronously.")
+            emb_and_store(pdf)
 
             logger.info("Successfully added pdf SYNCHRONOUSLY.")
             return jsonify({

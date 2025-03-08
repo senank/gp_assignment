@@ -4,6 +4,7 @@ from .constants import CHUNK_OVERLAP, CHUNK_SIZE, DB_SECTION, DB_EMBEDDING,\
     DB_TEXT, DB_ID
 from .embeddings import generate_embedding
 from .models import invoke_llm
+from .extract_pdf import extract_data_from_pdf
 
 from .database.task_helpers import get_entry_from_db
 from .database.add_pdf import add_pdf_to_db
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60, base=AbortableTask)
-def emb_and_store(self, pdf_id: str, pdf_text: str) -> Dict:
+def emb_and_store(self, pdf: bytes) -> Dict:
     """
     Embeds the file data and stores it in the database.
 
@@ -30,6 +31,7 @@ def emb_and_store(self, pdf_id: str, pdf_text: str) -> Dict:
     """
     try:
         logger.info("Processing pdf")
+        pdf_id, pdf_text = extract_data_from_pdf(pdf)
 
         # Avoid repeat entries
         if get_entry_from_db(pdf_id):
