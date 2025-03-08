@@ -2,7 +2,7 @@ import os
 
 # route.py
 MAX_RESPONSES = 10
-SIMILARITY_LIMIT = 0.2  # ? This limit is lower since cosine similarity using sentencetransformer
+SIMILARITY_LIMIT = 0.2  # ? This limit is lower since cosine similarity using sentencetransformer  # noqa: E501
 CACHE_EXPIRY = 12 * 60 * 60  # 12 hours
 
 

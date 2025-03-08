@@ -14,8 +14,9 @@ from sentence_transformers import SentenceTransformer
 import logging
 logger = logging.getLogger(__name__)
 
+# For SentenceTransformer rather than Mistral
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
-# TODO Swap mistral for in-memory as per instructions
 
 # embeddings
 def generate_embedding_mistral(text_inputs: List[str]) -> List[List[float]]:
@@ -32,14 +33,12 @@ def generate_embedding_mistral(text_inputs: List[str]) -> List[List[float]]:
             inputs=text_inputs
         )
         embedded_texts = [embeddings.data[i].embedding for i in range(0,len(text_inputs))]
-        logger.debug(f"Received {len(embedded_texts)} embeddings from OpenAI.")
+        logger.debug(f"Received {len(embedded_texts)} embeddings from Mistral.")
         return embedded_texts
     except Exception as e:
         logger.exception(f"An error occurred during embedding generation: {e}")
         return []
 
-
-model = SentenceTransformer('all-MiniLM-L6-v2')
 
 # embeddings
 def generate_embedding(text_inputs: List[str]) -> List[List[float]]:
@@ -51,7 +50,7 @@ def generate_embedding(text_inputs: List[str]) -> List[List[float]]:
     try:
         embeddings = model.encode(text_inputs, convert_to_numpy=True)
         # Normalizing to improve cosine similarity performace
-        normalized_embeddings = embeddings / linalg.norm(embeddings, axis=1, keepdims=True)
+        normalized_embeddings = embeddings / linalg.norm(embeddings, axis=1, keepdims=True)  # noqa: E501
         embedded_texts = [embedding.tolist() for embedding in normalized_embeddings]
         logger.debug(
             f"Received {len(embedded_texts)} embeddings with \

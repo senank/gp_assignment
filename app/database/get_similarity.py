@@ -47,8 +47,7 @@ def get_similarity(emb_text, similarity_limit: float, num_responses: int) -> Lis
         )
         cur.execute(sim_query_high, sim_query_values_high)
         similar_chunks = cur.fetchall()
-        logger.debug(f"Successfully retrieved low-level similar pdfs from high-level pdfs \
-                     against embedded text {similar_chunks}")
+        logger.debug(f"Successfully retrieved low-level similar pdfs from high-level pdfs against embedded text {similar_chunks}")  # noqa: E501
         return similar_chunks
 
     except Exception as e:

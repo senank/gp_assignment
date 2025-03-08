@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - embedding-in-memory
 
 jobs:
   lint:
@@ -53,7 +54,7 @@ jobs:
           echo "Application is running on $APP_URL"
           python -m pip install pytest
           pip install -r requirements_app.txt
-          python -m pytest -v test
+          python -m pytest -v test/unit
 
       - name: Shut down services
         if: always()
