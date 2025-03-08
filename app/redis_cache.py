@@ -1,27 +1,9 @@
 """
-redis_cache.py
-===============
-
 This module provides utilities for integrating Redis caching into the application. Redis
 is used to store and retrieve frequently accessed data to enhance performance and reduce
 database load. The module includes functionality for initializing Redis, managing cache
 entries, and generating cache keys.
 
-Module Overview:
-----------------
-The file is divided into the following sections:
-1. **Redis Initialization**: Functions to configure and set up the Redis client.
-2. **Getters**: Functions to retrieve cached data.
-3. **Setters**: Functions to set cache entries.
-4. **Cache Key Generation**: Utilities to generate consistent keys for caching based on
-                application logic.
-
-Dependencies:
--------------
-- redis: Python Redis client for interacting with the Redis database.
-- json: For serializing and deserializing cached data.
-- hashlib: For generating consistent hash keys using SHA-256.
-- logging: For logging Redis-related operations.
 """
 import redis
 from typing import Any, Tuple
@@ -95,14 +77,6 @@ def set_cache(redis_client, key: str, value: str, **kwargs) -> None:
 
 
 # Generating key's for cache
-def cache_key_get_entry_from_db(id_: str) -> str:
-    """
-    Generates a cache key for fetching an entry from the database.
-    """
-    cache_str = f"get_entry_from_db_{id_}"
-    return encoded_str(cache_str)
-
-
 def cache_key_answer_question(input: str) -> str:
     """
     Generates a cache key for similarity comparison calls.

@@ -7,7 +7,7 @@ from time import sleep
 url = os.getenv("APP_URL", "http://localhost:8000")
 
 answer_question_url = url + "/answer_question"
-answer_question_folder = "test/data/answer_question"
+answer_question_folder = "test/integration/data/answer_question"
 
 
 class Test_AnswerQuestion:

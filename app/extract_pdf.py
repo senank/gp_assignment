@@ -2,9 +2,11 @@ from pypdf import PdfReader
 from io import BytesIO
 import hashlib
 
+from typing import Tuple
 
-def extract_data_from_pdf(pdf_bytes: bytes) -> str:
-    """generates a id and extracts the text from a given pdf"""
+
+def extract_data_from_pdf(pdf_bytes: bytes) -> Tuple[str, str]:
+    """ Generates an id and extracts the text from a given pdf """
     hash_obj = hashlib.sha256(pdf_bytes)
     id_ = hash_obj.hexdigest()
 

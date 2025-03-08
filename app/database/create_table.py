@@ -326,13 +326,6 @@ def set_columns(conn: connection, cur: cursor, columns_to_add: dict, table_name:
 
     Iterates over the `columns_to_add` dictionary and calls `set_column` to add each
     missing column to the specified table.
-
-    Parameters:
-        conn (connection): A connection object to the database.
-        cur (cursor): A cursor object for executing SQL queries.
-        columns_to_add (dict): A dictionary where keys are column names and values
-                                are their SQL types.
-        table_name (str): The name of the table to which columns will be added.
     """
     logger.info(f"Starting to add missing columns to table '{table_name}'.")
     try:
@@ -353,13 +346,6 @@ def _set_column(col_name: str, col_type: str, table_name: str,
 
     Constructs and executes an SQL query to add the specified column (`col_name`)
     with the given type (`col_type`) to the table.
-
-    Parameters:
-        col_name (str): The name of the column to be added.
-        col_type (str): The SQL data type of the column.
-        table_name (str): The name of the table to which the column will be added.
-        conn (connection): A connection object to the database.
-        cur (cursor): A cursor object for executing SQL queries.
     """
     logger.debug(f"Preparing to add column '{col_name}' of type '{col_type}' \
                  to table '{table_name}'.")
@@ -529,7 +515,8 @@ def _get_create_table_query() -> str:
 
 def _get_vector_type() -> str:
     """ Returns the type of vector for pgvector """
-    return "vector(1024)"  # Size of mistral-embed encoding model
+    # return "vector(1024)"  # ? Size of mistral-embed encoding model
+    return "vector(384)"  # ? Size of all-MiniLM-L6-v2 encoding model
 
 
 def get_id_index_query() -> str:
@@ -557,7 +544,9 @@ def _get_vector_index_query() -> str:
 
 def _get_vector_index_params():
     """ Gets vector index setting for m and ef_construction"""
-    vector_dimension = 1024
+    # vector_dimension = 1024  # ? for mistral-embed encoding model
+    vector_dimension = 384  # ? for all-MiniLM-L6-v2 encoding model
+
     n = EXPECTED_SIZE_OF_DB
     dimensionality = log(n) * (1 + (vector_dimension / 500))
 

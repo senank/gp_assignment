@@ -6,7 +6,7 @@ from time import sleep
 url = os.getenv("APP_URL", "http://localhost:8000")
 
 add_pdf_url = url + "/add_pdf"
-add_pdf_folder = "test/data/add_pdf"
+add_pdf_folder = "test/integration/data/add_pdf"
 
 
 class Test_AddPDF:

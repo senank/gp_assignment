@@ -14,7 +14,10 @@ COPY requirements_app.txt requirements.txt
 
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir flake8
+    && pip install --no-cache-dir flake8 \
+    && pip install numpy --pre torch torchvision torchaudio --force-reinstall --index-url https://download.pytorch.org/whl/nightly/cpu \
+    && pip install sentence-transformers
+    
 
 COPY app /app/app
 COPY start-celery.sh /app/start-celery.sh
