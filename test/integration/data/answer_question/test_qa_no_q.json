@@ -1,0 +1,6 @@
+{
+    "filters": {
+        "text_filter": ["design"],
+        "bad_filter": []
+    }
+}

@@ -1,14 +1,18 @@
-from ..constants import DB_SECTION, DB_EMBEDDING, DB_TABLE_NAME, DB_TEXT, DB_ID
+from ..constants import DB_SECTION, DB_EMBEDDING, DB_TABLE_NAME, DB_TEXT, DB_ID,\
+    JSON_TEXT_FILTER
 from ..database import connect_to_db
 
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 import logging
 
 # Logger
 logger = logging.getLogger(__name__)
 
 
-def get_similarity(emb_text, similarity_limit: float, num_responses: int) -> List[str]:
+def get_similarity(emb_text,
+                   similarity_limit: float,
+                   num_responses: int,
+                   filters: Dict) -> List[str]:
     """
     Retrieve similar pdfs based on input
 
@@ -29,7 +33,8 @@ def get_similarity(emb_text, similarity_limit: float, num_responses: int) -> Lis
         sim_query_high, sim_query_values_high = _get_similarity_query_high_level(
             query_embedding,
             similarity_limit,
-            num_responses
+            num_responses,
+            filters
         )
         cur.execute(sim_query_high, sim_query_values_high)
         top_pdf_ids = cur.fetchall()
@@ -65,7 +70,8 @@ def get_similarity(emb_text, similarity_limit: float, num_responses: int) -> Lis
 
 def _get_similarity_query_high_level(query_embedding,
                                      similarity_limit,
-                                     num_responses) -> Tuple[str, list]:
+                                     num_responses,
+                                     filters) -> Tuple[str, list]:
     """
     Returns tuple containing a string query and its placeholder values to perform
     high-level similarity search that checks unique pdfs
@@ -76,10 +82,40 @@ def _get_similarity_query_high_level(query_embedding,
     FROM {DB_TABLE_NAME}
     WHERE {DB_SECTION} = 0
     AND 1 - ({DB_EMBEDDING} <=> %s) >= %s
+    """
+    placeholders=[query_embedding, similarity_limit]
+    if filters:
+        logger.debug(f"Adding filter {filters} to sql query")
+        filter_clauses = []
+        for column_name, val in filters.items():
+            # Text search filter
+            if column_name == JSON_TEXT_FILTER and val not in ["", None]:
+                text_filters = []
+                for text_val in val:
+                    text_filters.append(f"{DB_TEXT} LIKE %s")
+                    placeholders.append(f"%{text_val}%")  # Wildcards for partial matching
+                    logger.debug(f"Added filter: {DB_TEXT} LIKE '%{text_val}%'")
+                text_filters_str = " OR ".join(text_filters)
+                logger.info(f"Text filter string = {text_filters_str}")
+                filter_clauses.append(f"({text_filters_str})")
+
+            # Can add more filters here
+
+        if filter_clauses:
+            query += " AND " + " AND ".join(filter_clauses)
+            logger.debug(f"Filter clauses appended to query: \
+                         {' AND '.join(filter_clauses)}")
+
+    end_query = f"""
     ORDER BY {DB_EMBEDDING} <=> %s
     LIMIT %s
     """
-    placeholders=[query_embedding, similarity_limit, query_embedding, num_responses]
+
+    placeholders.extend([query_embedding, num_responses])
+    query += end_query
+    logger.debug(f"Final query: {query}")
+    logger.debug(f"Final placeholders: {placeholders}")
+
     logger.info("Similarity query for text built successfully.")
 
     return query, placeholders

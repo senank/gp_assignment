@@ -56,7 +56,10 @@ def emb_and_store(self, pdf: bytes) -> Dict:
         raise Exception(f"Error occured in emb_and_store: {e}")
 
 
-def answer_question(question: str, similarity_limit: float, max_responses: int) -> str:
+def answer_question(question: str,
+                    similarity_limit: float,
+                    max_responses: int,
+                    filters: Dict) -> str:
     """
     Perform similarity comparison based on provided text, then answers the question in
     the text.
@@ -66,7 +69,7 @@ def answer_question(question: str, similarity_limit: float, max_responses: int) 
         emb_text = generate_embedding([question])[0]
 
         logger.debug("Getting sources for answer")
-        answer_sources = get_sim(emb_text, similarity_limit, max_responses)
+        answer_sources = get_sim(emb_text, similarity_limit, max_responses, filters)
         logger
         logger.debug(f"Sources for answer: {answer_sources}")
         logger.debug(f"Invoking LLM with {question} and sources")

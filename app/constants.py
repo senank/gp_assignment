@@ -10,6 +10,8 @@ CACHE_EXPIRY = 12 * 60 * 60  # 12 hours
 JSON_QUESTION = 'text'
 JSON_SIMILARITY_LIMIT = 'similarity_limit'
 JSON_MAX_RESPONSES = 'max_responses'
+JSON_FILTERS = 'filters'
+JSON_TEXT_FILTER = 'text_filter'
 
 
 # database.py

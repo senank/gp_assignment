@@ -5,7 +5,8 @@ import json
 import redis
 
 from .constants import JSON_QUESTION, SIMILARITY_LIMIT, MAX_RESPONSES,\
-    JSON_SIMILARITY_LIMIT, JSON_MAX_RESPONSES, CACHE_EXPIRY
+    JSON_SIMILARITY_LIMIT, JSON_MAX_RESPONSES, CACHE_EXPIRY, JSON_FILTERS,\
+    JSON_TEXT_FILTER
 
 from .task import emb_and_store, answer_question
 from .redis_cache import cache_key_answer_question, set_cache, get_cache
@@ -141,13 +142,14 @@ class APIRoutes:
 
             similarity_limit = data.get(JSON_SIMILARITY_LIMIT, SIMILARITY_LIMIT)
             max_responses = data.get(JSON_MAX_RESPONSES, MAX_RESPONSES)
+            filters = data.get(JSON_FILTERS, {})
 
             _redis_healthcheck()  # Healthcheck redis cache
 
             redis_client = current_app.config["REDIS_CACHE"]
 
             logger.debug("Checking cache for similarity comparison.")
-            cached_similarity_key = cache_key_answer_question(question_text)
+            cached_similarity_key = cache_key_answer_question(question_text, filters)
             status, cached_result = get_cache(redis_client, cached_similarity_key)
             if status == 1:  # if cached
                 logger.info("Found similarity comparison data for text input in cache.")
@@ -158,7 +160,8 @@ class APIRoutes:
             # If not cached
             logger.info("No similarity comparison data for text input in cache; \
                         querying db")
-            answer = answer_question(question_text, similarity_limit, max_responses)
+            answer = answer_question(question_text, similarity_limit,
+                                     max_responses, filters)
 
             logger.info("Setting cache for similarity comparison based on text")
             set_cache(redis_client, cached_similarity_key, json.dumps(answer),
@@ -219,7 +222,18 @@ def _get_json_schema_answer_text():
         "properties": {
             JSON_QUESTION: {"type": "string"},
             JSON_SIMILARITY_LIMIT: {"type": "number"},
-            JSON_MAX_RESPONSES: {"type": "integer"}
+            JSON_MAX_RESPONSES: {"type": "integer"},
+            JSON_FILTERS: {
+                "type": "object",
+                "properties": {
+                    JSON_TEXT_FILTER: {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                }
+            }
         },
         "required": [JSON_QUESTION],
         "additionalProperties": False

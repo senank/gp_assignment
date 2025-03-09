@@ -39,3 +39,31 @@ class Test_AnswerQuestion:
         response = requests.post(self.url, json=data)
         print(response.json())
         assert response.status_code == 200
+
+    def test_valid_filter(self):
+        with open(f"{self.folder}/test_qa_filters.json", 'r') as file:
+            data = json.load(file)
+        response = requests.post(self.url, json=data)
+        print(response.json())
+        assert response.status_code == 200
+
+    def test_invalid(self):
+        with open(f"{self.folder}/test_qa_invalid.json", 'r') as file:
+            data = json.load(file)
+        response = requests.post(self.url, json=data)
+        print(response.json())
+        assert response.status_code == 400
+
+    def test_invalid_filters(self):
+        with open(f"{self.folder}/test_qa_invalid_filter.json", 'r') as file:
+            data = json.load(file)
+        response = requests.post(self.url, json=data)
+        print(response.json())
+        assert response.status_code == 200
+
+    def test_no_q(self):
+        with open(f"{self.folder}/test_qa_no_q.json", 'r') as file:
+            data = json.load(file)
+        response = requests.post(self.url, json=data)
+        print(response.json())
+        assert response.status_code == 400

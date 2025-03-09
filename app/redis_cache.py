@@ -6,7 +6,8 @@ entries, and generating cache keys.
 
 """
 import redis
-from typing import Any, Tuple
+import json
+from typing import Any, Tuple, Dict
 from hashlib import sha256
 from logging import getLogger
 
@@ -77,12 +78,14 @@ def set_cache(redis_client, key: str, value: str, **kwargs) -> None:
 
 
 # Generating key's for cache
-def cache_key_answer_question(input: str) -> str:
+def cache_key_answer_question(input: str, filters: Dict) -> str:
     """
     Generates a cache key for similarity comparison calls.
     """
+    filters_str = json.dumps(filters, sort_keys=True)
+
     cache_str = f"""
-    {input}
+    {input}_{filters_str}
     """
     return encoded_str(cache_str)
 
