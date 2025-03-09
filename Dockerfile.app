@@ -28,5 +28,5 @@ USER celery_user
 
 EXPOSE 5000
 
-CMD ["gunicorn", "-w", "3", "-b", "0.0.0.0:5000", "--timeout=300", "app.app_instance:app"]
+CMD ["gunicorn", "-w", "8", "-b", "0.0.0.0:5000", "--timeout=300", "app.app_instance:app"]
 

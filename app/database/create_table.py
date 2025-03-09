@@ -45,10 +45,6 @@ def create_table(table_name: str) -> None:
     try:
         conn, cur = connect_to_db()
         logger.info("Connected to the PostgreSQL database.")
-        # check pgvector is enabled
-        logger.debug("Checking if 'pgvector' extension is enabled.")
-        _check_pgvector(conn, cur)  # enable pg_vector
-        logger.info("'pgvector' extension verified.")
 
         # Check if table is created
         if not _check_table_exists(conn, cur, table_name):  # Table doesn't exist
@@ -115,33 +111,6 @@ def _check_table_exists(conn: connection, cur: cursor, table_name: str) -> bool:
     except Exception as e:
         logger.exception(f"Failed to check existence of table '{table_name}'.")
         raise Exception(f"Error: _check_table_exists: {e}")
-
-
-def _check_pgvector(conn: connection, cur: cursor):
-    """
-    Checks and enables the pgvector extension in the PostgreSQL database.
-
-    Example:
-        >>> conn, cur = connect_to_db()
-        >>> check_pgvector(conn, cur)
-        pgvector extension not found. Creating extension...
-        >>> check_pgvector(conn, cur)
-        pgvector extension already installed.
-    """
-    logger.info("Checking if 'pgvector' extension is installed.")
-    try:
-        # Check if the pgvector extension is installed
-        cur.execute("SELECT extname FROM pg_extension WHERE extname = 'vector';")
-        if cur.fetchone() is None:
-            logger.warning("'pgvector' extension not found. Creating extension...")
-            cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
-            logger.info("'pgvector' extension created successfully.")
-        else:
-            logger.info("'pgvector' extension is already installed.")
-    except Exception as e:
-        conn.rollback()
-        logger.exception("Failed to check or create the 'pgvector' extension.")
-        raise Exception(f"Error: check_pgvector: {e}")
 
 
 def _make_table_helper(conn: connection, cur: cursor):
