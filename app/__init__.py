@@ -147,7 +147,6 @@ def _setup_logging():
 def _init_flask_app():
     """
     Configures the flask application
-
     """
     app = Flask(__name__)
     app.config['ENV'] = 'development'

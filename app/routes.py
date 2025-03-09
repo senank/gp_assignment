@@ -2,6 +2,8 @@ from flask import request, jsonify, Blueprint, current_app
 from jsonschema import validate, ValidationError
 import json
 
+from time import time
+
 import redis
 
 from .constants import JSON_QUESTION, SIMILARITY_LIMIT, MAX_RESPONSES,\
@@ -83,6 +85,7 @@ class APIRoutes:
         Handles /add_pdf POST requests to extract the data of a pdf, embed it and store
         it in the database
         """
+        overall_start = time()
         logger.info("Processing add_pdf request.")
         try:
             # Validate request is a pdf file
@@ -94,24 +97,40 @@ class APIRoutes:
             logger.debug("Extracted file bytes")
 
             # Checking if redis and celery worker available
+            service_start = time()
             logger.debug("Checking if redis are available")
             _redis_healthcheck()  # Healthcheck redis for .delay
             logger.debug("Checking if celery workers are available")
             _is_celery_worker_active()  # Check if celery worker is active
+            service_time = time() - service_start
 
             logger.debug("Adding pdf to the db asynchronously.")
             emb_and_store.delay(pdf)
 
             logger.info("Successfully added pdf ASYNCHRONOUSLY")
-            return jsonify({"message": "Succesfully added pdf"}), 200
+            overall_time = time() - overall_start
+            return jsonify({
+                "message": "Succesfully added pdf",
+                "latency": {
+                    "overall_time": overall_time,
+                    "service_check_time": service_time
+                }
+            }), 200
         except ConnectionError:
+            service_time = time() - service_start
             logger.error("Connection error to redis/celery.")
             logger.debug("Adding pdf to the db synchronously.")
             emb_and_store(pdf)
 
             logger.info("Successfully added pdf SYNCHRONOUSLY.")
+            overall_time = time() - overall_start
             return jsonify({
-                "message": "Succesfully added pdf",}), 200
+                "message": "Succesfully added pdf",
+                "latency": {
+                    "overall_time": overall_time,
+                    "service_check_time": service_time
+                }
+            }), 200
 
         except ValidationError as e:
             logger.error(f"Validation error in add_pdf: {str(e)}")
@@ -122,7 +141,22 @@ class APIRoutes:
 
     # URL/answer_question
     def answer_question(self):
+        """
+        Handles /answer_question POST requests to answer a question.
+
+        1) Takes a text input (question) and text_filters (filters)
+        2) Checks Cache for recent response
+        3a) If cached
+            - returns cached data as response
+        3b) If not cached
+            - embeds text_input
+            - queries db using cosine search with text_filters if applicable
+            - invokes llm with question and sources returned from db query
+            - caches result
+            - returns result
+        """
         logger.info("Processing compare_text request.")
+        overall_start = time()
         try:
             if not request.is_json:
                 logger.error("Request content is not JSON.")
@@ -136,15 +170,21 @@ class APIRoutes:
 
             question_text = data[JSON_QUESTION]
             if not question_text:
+                overall_time = time() - overall_start
                 return jsonify({
                     'message': 'need a valid question query',
-                    'data': ""}), 404
+                    'data': "",
+                    "latency": {
+                        "overall_time": overall_time
+                    }}), 404
 
             similarity_limit = data.get(JSON_SIMILARITY_LIMIT, SIMILARITY_LIMIT)
             max_responses = data.get(JSON_MAX_RESPONSES, MAX_RESPONSES)
             filters = data.get(JSON_FILTERS, {})
-
+            
+            service_start = time()
             _redis_healthcheck()  # Healthcheck redis cache
+            service_time = time() - service_start
 
             redis_client = current_app.config["REDIS_CACHE"]
 
@@ -153,35 +193,64 @@ class APIRoutes:
             status, cached_result = get_cache(redis_client, cached_similarity_key)
             if status == 1:  # if cached
                 logger.info("Found similarity comparison data for text input in cache.")
+                overall_time = time() - overall_start
                 return jsonify({
                     'message': 'Found search in Cache',
-                    'data': json.loads(cached_result)}), 200
+                    'data': json.loads(cached_result),
+                    'latency': {
+                        "overall_time": overall_time,
+                        "service_check_time": service_time
+                    }}), 200
 
             # If not cached
             logger.info("No similarity comparison data for text input in cache; \
                         querying db")
-            answer = answer_question(question_text, similarity_limit,
-                                     max_responses, filters)
+            answer, db_query_time, invoke_time = answer_question(
+                question_text,
+                similarity_limit,
+                max_responses,
+                filters
+            )
 
             logger.info("Setting cache for similarity comparison based on text")
             set_cache(redis_client, cached_similarity_key, json.dumps(answer),
                       ex=CACHE_EXPIRY)
 
             logger.info("Successfully generated answer to given question")
+            overall_time = time() - overall_start
             return jsonify({
                 'message': f"Successfully generated answer to {question_text}",
-                'data': answer}), 200
+                'data': answer,
+                "latency": {
+                    "overall_time": overall_time,
+                    "service_check_time": service_time,
+                    "db_query_time": db_query_time,
+                    "model_invocation_time": invoke_time
+                }}), 200
 
         except ConnectionError:
             logger.error("Connection error to redis, not checking cache")
+            service_time = time() - service_start
 
-            answer = answer_question(question_text, similarity_limit, max_responses)
+            answer, db_query_time, invoke_time = answer_question(
+                question_text,
+                similarity_limit,
+                max_responses,
+                filters
+            )
 
             logger.info("Successfully generated similar IDs, with filters, to \
                         the given input text")
+            overall_time = time() - overall_start
             return jsonify({
                 'message': f"Successfully generated answer to {question_text}",
-                'data': answer}), 200
+                'data': answer,
+                "latency": {
+                    "overall_time": overall_time,
+                    "service_check_time": service_time,
+                    "db_query_time": db_query_time,
+                    "model_invocation_time": invoke_time
+                }}), 200
 
         except ValidationError as e:
             logger.error(f"Validation error: {str(e)}")

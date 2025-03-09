@@ -368,12 +368,6 @@ def remove_columns(conn: connection, cur: cursor, columns_to_rm: list, table_nam
     Iterates over the `columns_to_rm` dictionary and calls `_remove_column` to
     remove any specified column to the specified table.
 
-    Parameters:
-        conn (connection): A connection object to the database.
-        cur (cursor): A cursor object for executing SQL queries.
-        columns_to_rm (dict): A dictionary where keys are column names and
-                                values are their SQL types.
-        table_name (str): The name of the table to which columns will be added.
     """
     logger.info(f"Starting to remove columns from table '{table_name}'.")
     try:
@@ -394,11 +388,6 @@ def _remove_column(col_name: str, table_name: str, conn: connection, cur: cursor
     Constructs and executes an SQL query to remove the specified column (`col_name`)
     from the table.
 
-    Parameters:
-        col_name (str): The name of the column to be removed.
-        table_name (str): The name of the table to which the column will be removed.
-        conn (connection): A connection object to the database.
-        cur (cursor): A cursor object for executing SQL queries.
     """
     logger.debug(f"Preparing to remove column '{col_name}' from table '{table_name}'.")
     try:
