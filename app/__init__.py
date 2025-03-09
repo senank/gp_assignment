@@ -68,7 +68,7 @@ def create_app():
         raise Exception(f"ERROR: registering API routes: {e}")
 
     # Build tables if this is main app (i.e. not a celery worker)
-    if os.getenv("FLASK_RUN_MAIN") == "1":
+    if os.getenv("FLASK_RUN_MAIN") == "1" and os.getpid() == 7:
         try:
             create_table(DB_TABLE_NAME)
             app.logger.info("Successfully set up database tables")
