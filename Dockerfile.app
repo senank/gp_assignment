@@ -28,4 +28,5 @@ USER celery_user
 
 EXPOSE 5000
 
-CMD ["flask", "run", "--host=0.0.0.0", "--reload"]
+CMD ["gunicorn", "-w", "3", "-b", "0.0.0.0:5000", "--timeout=300", "app.app_instance:app"]
+

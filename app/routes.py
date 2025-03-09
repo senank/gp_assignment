@@ -181,7 +181,7 @@ class APIRoutes:
             similarity_limit = data.get(JSON_SIMILARITY_LIMIT, SIMILARITY_LIMIT)
             max_responses = data.get(JSON_MAX_RESPONSES, MAX_RESPONSES)
             filters = data.get(JSON_FILTERS, {})
-            
+
             service_start = time()
             _redis_healthcheck()  # Healthcheck redis cache
             service_time = time() - service_start
