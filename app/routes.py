@@ -97,12 +97,19 @@ class APIRoutes:
             logger.debug("Extracted file bytes")
 
             # Checking if redis and celery worker available
-            service_start = time()
-            logger.debug("Checking if redis are available")
-            _redis_healthcheck()  # Healthcheck redis for .delay
-            logger.debug("Checking if celery workers are available")
-            _is_celery_worker_active()  # Check if celery worker is active
-            service_time = time() - service_start
+            redis_client = redis.Redis(host="redis", port=6379, db=0)
+            redis_status = redis_client.get("redis_status")
+            celery_status = redis_client.get("celery_status")
+            if redis_status != b"up" or celery_status != b"up":
+                emb_and_store(pdf)
+                logger.info("Successfully added pdf SYNCHRONOUSLY.")
+                overall_time = time() - overall_start
+                return jsonify({
+                    "message": "Succesfully added pdf",
+                    "latency": {
+                        "overall_time": overall_time,
+                    }
+                }), 200
 
             logger.debug("Adding pdf to the db asynchronously.")
             emb_and_store.delay(pdf)
@@ -113,25 +120,8 @@ class APIRoutes:
                 "message": "Succesfully added pdf",
                 "latency": {
                     "overall_time": overall_time,
-                    "service_check_time": service_time
                 }
             }), 200
-        except ConnectionError:
-            service_time = time() - service_start
-            logger.error("Connection error to redis/celery.")
-            logger.debug("Adding pdf to the db synchronously.")
-            emb_and_store(pdf)
-
-            logger.info("Successfully added pdf SYNCHRONOUSLY.")
-            overall_time = time() - overall_start
-            return jsonify({
-                "message": "Succesfully added pdf",
-                "latency": {
-                    "overall_time": overall_time,
-                    "service_check_time": service_time
-                }
-            }), 200
-
         except ValidationError as e:
             logger.error(f"Validation error in add_pdf: {str(e)}")
             return jsonify({"error": f"add_pdf: {str(e)}"}), 400
@@ -182,12 +172,8 @@ class APIRoutes:
             max_responses = data.get(JSON_MAX_RESPONSES, MAX_RESPONSES)
             filters = data.get(JSON_FILTERS, {})
 
-            service_start = time()
-            _redis_healthcheck()  # Healthcheck redis cache
-            service_time = time() - service_start
 
             redis_client = current_app.config["REDIS_CACHE"]
-
             logger.debug("Checking cache for similarity comparison.")
             cached_similarity_key = cache_key_answer_question(question_text, filters)
             status, cached_result = get_cache(redis_client, cached_similarity_key)
@@ -199,7 +185,6 @@ class APIRoutes:
                     'data': json.loads(cached_result),
                     'latency': {
                         "overall_time": overall_time,
-                        "service_check_time": service_time
                     }}), 200
 
             # If not cached
@@ -223,14 +208,12 @@ class APIRoutes:
                 'data': answer,
                 "latency": {
                     "overall_time": overall_time,
-                    "service_check_time": service_time,
                     "db_query_time": db_query_time,
                     "model_invocation_time": invoke_time
                 }}), 200
 
         except ConnectionError:
             logger.error("Connection error to redis, not checking cache")
-            service_time = time() - service_start
 
             answer, db_query_time, invoke_time = answer_question(
                 question_text,
@@ -247,7 +230,6 @@ class APIRoutes:
                 'data': answer,
                 "latency": {
                     "overall_time": overall_time,
-                    "service_check_time": service_time,
                     "db_query_time": db_query_time,
                     "model_invocation_time": invoke_time
                 }}), 200
