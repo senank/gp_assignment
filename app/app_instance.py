@@ -24,6 +24,7 @@ celery = make_celery(app)
 
 redis_client = redis.Redis(host="redis", port=6379, db=0)
 
+
 def _update_health_status():
     """
     Runs in the background and updates Redis & Celery health status every 5s.
@@ -33,7 +34,7 @@ def _update_health_status():
             redis_client.set("redis_status", "up", ex=15)  # Expire in 10s
         except Exception:
             redis_client.set("redis_status", "down", ex=15)
-        
+
         try:
             workers = celery.control.ping(timeout=3)
             if bool(workers) is False:
@@ -44,6 +45,7 @@ def _update_health_status():
             redis_client.set("celery_status", "down", ex=15)
 
         time.sleep(10)  # Check every 10 seconds
+
 
 if os.getenv("FLASK_RUN_MAIN") == "1":
     health_thread = threading.Thread(target=_update_health_status, daemon=True)

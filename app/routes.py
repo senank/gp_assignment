@@ -17,33 +17,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def _redis_healthcheck():
-    """
-    Check the availability of the Redis server using the specified host, port,
-    and database. `ConnectionError` is raised if unavailable or error occured.
-    """
-    try:
-        redis_client = redis.Redis(host="redis", port=6379, db=0)
-        redis_client.ping()
-    except Exception as e:
-        logger.warning(f"redis_healthcheck: Could not connect to redis: {e}\n")
-        raise ConnectionError
-
-
-def _is_celery_worker_active():
-    """
-    Attempts to ping celery worker, `ConnectionError` is raised if not successful.
-    """
-    try:
-        from .app_instance import celery
-        workers = celery.control.ping(timeout=3)
-        logger.debug(f"Workers: {workers}")
-        if bool(workers) is False:
-            raise ConnectionError
-    except Exception:
-        raise ConnectionError
-
-
 # API endpoint class
 class APIRoutes:
     """
@@ -171,7 +144,6 @@ class APIRoutes:
             similarity_limit = data.get(JSON_SIMILARITY_LIMIT, SIMILARITY_LIMIT)
             max_responses = data.get(JSON_MAX_RESPONSES, MAX_RESPONSES)
             filters = data.get(JSON_FILTERS, {})
-
 
             redis_client = current_app.config["REDIS_CACHE"]
             logger.debug("Checking cache for similarity comparison.")
