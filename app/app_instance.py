@@ -23,7 +23,6 @@ app = create_app()  # Singleton instance of the Flask app
 celery = make_celery(app)
 
 
-
 def _update_health_status():
     """
     Runs in the background and updates Redis & Celery health status every 5s.

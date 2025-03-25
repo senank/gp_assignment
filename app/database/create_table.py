@@ -89,6 +89,7 @@ def create_table(table_name: str) -> None:
             logger.debug("Connection closed successfully.")
         logger.info(f"Finished processing table creation for '{table_name}'.")
 
+
 def _check_pgvector(conn: connection, cur: cursor):
     """
     Checks and enables the pgvector extension in the PostgreSQL database.
@@ -114,6 +115,7 @@ def _check_pgvector(conn: connection, cur: cursor):
         conn.rollback()
         logger.exception("Failed to check or create the 'pgvector' extension.")
         raise Exception(f"Error: check_pgvector: {e}")
+
 
 def _check_table_exists(conn: connection, cur: cursor, table_name: str) -> bool:
     """
