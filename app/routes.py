@@ -4,7 +4,7 @@ import json
 
 from time import time
 
-import redis
+from redis.exceptions import ConnectionError as RedisConnectionError
 
 from .constants import JSON_QUESTION, SIMILARITY_LIMIT, MAX_RESPONSES,\
     JSON_SIMILARITY_LIMIT, JSON_MAX_RESPONSES, CACHE_EXPIRY, JSON_FILTERS,\
@@ -70,10 +70,9 @@ class APIRoutes:
             logger.debug("Extracted file bytes")
 
             # Checking if redis and celery worker available
-            redis_client = redis.Redis(host="redis", port=6379, db=0)
-            redis_status = redis_client.get("redis_status")
+            redis_client = current_app.config["REDIS_CACHE"]
             celery_status = redis_client.get("celery_status")
-            if redis_status != b"up" or celery_status != b"up":
+            if celery_status != b"up":
                 emb_and_store(pdf)
                 logger.info("Successfully added pdf SYNCHRONOUSLY.")
                 overall_time = time() - overall_start
@@ -98,8 +97,19 @@ class APIRoutes:
         except ValidationError as e:
             logger.error(f"Validation error in add_pdf: {str(e)}")
             return jsonify({"error": f"add_pdf: {str(e)}"}), 400
+        except (ConnectionError, RedisConnectionError) as e:
+            logger.error(f"Redis connection error in add_pdf: {str(e)}")
+            emb_and_store(pdf)
+            logger.info("Successfully added pdf SYNCHRONOUSLY.")
+            overall_time = time() - overall_start
+            return jsonify({
+                "message": "Succesfully added pdf",
+                "latency": {
+                    "overall_time": overall_time,
+                }
+            }), 200
         except Exception as e:
-            logger.exception(f"Unexpected error in add_pdf: {str(e)}")
+            logger.exception(f"Unexpected error in add_pdf: {type(e).__name__}{str(e)}")
             return jsonify({"error": f"add_pdf: {str(e)}"}), 500
 
     # URL/answer_question
@@ -184,7 +194,7 @@ class APIRoutes:
                     "model_invocation_time": invoke_time
                 }}), 200
 
-        except ConnectionError:
+        except (ConnectionError, RedisConnectionError):
             logger.error("Connection error to redis, not checking cache")
 
             answer, db_query_time, invoke_time = answer_question(

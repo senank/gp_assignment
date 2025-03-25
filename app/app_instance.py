@@ -9,9 +9,9 @@ the application and task queue are properly integrated.
 from app import create_app
 from .celery_worker import make_celery
 
-import redis
+from redis.exceptions import ConnectionError as RedisConnectionError
 import threading
-import time
+from time import sleep
 import os
 
 from logging import getLogger
@@ -22,7 +22,6 @@ logger = getLogger(__name__)
 app = create_app()  # Singleton instance of the Flask app
 celery = make_celery(app)
 
-redis_client = redis.Redis(host="redis", port=6379, db=0)
 
 
 def _update_health_status():
@@ -31,20 +30,28 @@ def _update_health_status():
     """
     while True:
         try:
-            redis_client.set("redis_status", "up", ex=15)  # Expire in 10s
-        except Exception:
-            redis_client.set("redis_status", "down", ex=15)
+            redis_client = app.config["REDIS_CACHE"]
+            redis_client.set("redis_status", "up", ex=15)  # Expire in 15s
+            redis_client_up = True
+            logger.info("Redis is up.")
+        except (Exception, RedisConnectionError):
+            logger.warning("Redis ping failed, Redis is down.")
+            redis_client_up = False
 
-        try:
-            workers = celery.control.ping(timeout=3)
-            if bool(workers) is False:
+        if redis_client_up:
+            try:
+                workers = celery.control.ping(timeout=3)
+                if bool(workers) is False:
+                    redis_client.set("celery_status", "down", ex=15)
+                    logger.info("Celery workers are down.")
+                else:
+                    redis_client.set("celery_status", "up", ex=15)
+                    logger.info("Celery workers are up.")
+            except Exception:
                 redis_client.set("celery_status", "down", ex=15)
-            else:
-                redis_client.set("celery_status", "up", ex=15)
-        except Exception:
-            redis_client.set("celery_status", "down", ex=15)
+                logger.info("Celery workers are down.")
 
-        time.sleep(10)  # Check every 10 seconds
+        sleep(10)  # Check every 10 seconds
 
 
 if os.getenv("FLASK_RUN_MAIN") == "1":

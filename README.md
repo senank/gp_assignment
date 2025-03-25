@@ -14,10 +14,13 @@
 ***Extras***
 
 For connecting and testing db:
-```docker exec -it CONTAINER_NAME psql -U DB_USER -d DB_NAME -h DB_HOST -p DB_PORT```
+```docker exec -it CONTAINER_NAME-db-1 psql -U DB_USER -d DB_NAME -h DB_HOST -p DB_PORT```
+
+```docker exec -it guidepoint_assignment-db-1 psql -U senan -d app_db -h db -p 5432```
 
 For connecting to redis container:
 ```docker exec -it CONTAINER_NAME-redis-1 redis-cli```
+```docker exec -it guidepoint_assignment-redis-1 redis-cli```
 
 For running tests:
 ```python -m pytest -v -s test```
@@ -31,8 +34,10 @@ For running locust:
 - **Celery + Redis** for task execution
     - *Celery* handles long-running tasks (PDF processing, embedding generation).
     - *Redis as a broker* ensures efficient task distribution.
+    - Robust task queueing, automatic retries and distributed processing as well as being easy to implement
 - **Redis** for caching
     - Reduces response time for repeated queries by storing computed results.
+    - light-weight inmemory data store
 - **LLM**
     - Running a local LLM is too resource-intensive.
     - Using Mistral API for LLM inference since it keeps the setup lightweight and is free.
@@ -49,3 +54,10 @@ For running locust:
     - reduce latency for multiple requests
 
 - locust shows that biggest bottle neck is API calls to invoke the LLM, with failures due to the max 1 request per second and time taken to process invocation + db query ~1.5s
+
+What to improve:
+- Implement async + await to enforce rate limit calls to LLM API in answer_question route to prevent failuers
+    - Using a queue-based approach
+    - Limited scalability comes from LLM rate limit
+        - Could try distributing requests across multiple API keys to see if this works.
+
