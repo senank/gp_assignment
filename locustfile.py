@@ -1,5 +1,7 @@
 from locust import HttpUser, task, between
 
+from random import randint  # noqa: F401
+
 
 class AppUser(HttpUser):
     wait_time = between(1, 3)
@@ -12,6 +14,7 @@ class AppUser(HttpUser):
             "Content-Type": "application/json"
         }
         data = {"text": "What is Retrieval-Augmented Generation?"}
+        # data = {"text": f"What is Retrieval-Augmented Generation?{randint(0, 100000)}"}
         self.client.post("/answer_question", json=data, headers=headers)
 
     @task(1)

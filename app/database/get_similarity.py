@@ -38,6 +38,9 @@ def get_similarity(emb_text,
         )
         cur.execute(sim_query_high, sim_query_values_high)
         top_pdf_ids = cur.fetchall()
+        if not top_pdf_ids:
+            logger.debug("No similar pdfs found in first stage of retrieval.")
+            return []
         similar_pdf_ids = [row[0] for row in top_pdf_ids]
         logger.debug(f"Successfully retrieved high-level similar pdfs \
                      against embedded text {top_pdf_ids}")
