@@ -135,12 +135,15 @@ def _setup_logging():
         >>> setup_logging()
         2023-12-04 12:00:00,000 - root - INFO - Logging is set up.
     """
-    log_level = logging.DEBUG
+    log_level = logging.INFO
 
     logging.basicConfig(
         level=log_level,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
+    logging.getLogger("httpcore.http11").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+
     logging.info("Logging is set up.")
 
 
@@ -150,7 +153,7 @@ def _init_flask_app():
     """
     app = Flask(__name__)
     app.config['ENV'] = 'development'
-    app.config['DEBUG'] = True
+    # app.config['DEBUG'] = True
     app.config['TESTING'] = True
     app.logger.info("Flask application instance created.")
     return app

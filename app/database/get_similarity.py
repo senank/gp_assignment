@@ -96,7 +96,7 @@ def _get_similarity_query_high_level(query_embedding,
                     placeholders.append(f"%{text_val}%")  # Wildcards for partial matching
                     logger.debug(f"Added filter: {DB_TEXT} LIKE '%{text_val}%'")
                 text_filters_str = " OR ".join(text_filters)
-                logger.info(f"Text filter string = {text_filters_str}")
+                logger.debug(f"Text filter string = {text_filters_str}")
                 filter_clauses.append(f"({text_filters_str})")
 
             # Can add more filters here

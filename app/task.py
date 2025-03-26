@@ -66,7 +66,8 @@ def answer_question(question: str,
     the text.
     """
     try:
-        logger.info("Calculating embedding for provided text.")
+        logger.info("Answering question")
+        logger.debug("Calculating embedding for provided text.")
         query_db_start = time()
         emb_text = generate_embedding([question])[0]
 

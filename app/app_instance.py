@@ -32,7 +32,7 @@ def _update_health_status():
             redis_client = app.config["REDIS_CACHE"]
             redis_client.set("redis_status", "up", ex=15)  # Expire in 15s
             redis_client_up = True
-            logger.info("Redis is up.")
+            logger.debug("Redis is up.")
         except (Exception, RedisConnectionError):
             logger.warning("Redis ping failed, Redis is down.")
             redis_client_up = False
@@ -42,13 +42,13 @@ def _update_health_status():
                 workers = celery.control.ping(timeout=3)
                 if bool(workers) is False:
                     redis_client.set("celery_status", "down", ex=15)
-                    logger.info("Celery workers are down.")
+                    logger.warning("Celery workers are down.")
                 else:
                     redis_client.set("celery_status", "up", ex=15)
-                    logger.info("Celery workers are up.")
+                    logger.debug("Celery workers are up.")
             except Exception:
                 redis_client.set("celery_status", "down", ex=15)
-                logger.info("Celery workers are down.")
+                logger.warning("Celery workers are down.")
 
         sleep(10)  # Check every 10 seconds
 
